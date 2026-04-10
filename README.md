@@ -5,26 +5,26 @@
 Clone the repository
 
 ```bash
-git clonehttps://github.com/entbappy/Build-a-Complete-Medical-Chatbot-with-LLMs-LangChain-Pinecone-Flask-AWS.git
+git clone https://github.com/vishxlkr/MedAI.git
+cd MedAI
 ```
 
-### STEP 01- Create a conda environment after opening the repository
+### STEP 01- Create a virtual environment after opening the repository
 
 ```bash
-conda create -n medibot python=3.10 -y
+python -m venv venv
+# On Windows, activate using: venv\Scripts\activate
+# On macOS/Linux, activate using: source venv/bin/activate
+venv\Scripts\activate
 ```
 
-```bash
-conda activate medibot
-```
-
-### STEP 02- install the requirements
+### STEP 02- Install the requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Create a `.env` file in the root directory and add your Pinecone & openai credentials as follows:
+### Create a `.env` file in the root directory and add your Pinecone & OpenAI credentials as follows:
 
 ```ini
 PINECONE_API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -44,10 +44,10 @@ python app.py
 Now,
 
 ```bash
-open up localhost:
+open up http://localhost:8080/
 ```
 
-### Techstack Used:
+### Tech Stack Used:
 
 - Python
 - LangChain
