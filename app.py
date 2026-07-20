@@ -1,13 +1,15 @@
 from flask import Flask, render_template, jsonify, request
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 from src.prompt import *
 import os
+import re
+import traceback
 
 
 app = Flask(__name__)
@@ -16,10 +18,30 @@ app = Flask(__name__)
 load_dotenv()
 
 PINECONE_API_KEY=os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY=os.environ.get('OPENAI_API_KEY')
+GOOGLE_API_KEY=os.environ.get('GOOGLE_API_KEY')
 
-os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+if PINECONE_API_KEY:
+    os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
+if GOOGLE_API_KEY:
+    os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+GREETING_RESPONSES = {
+    "hi",
+    "hii",
+    "hello",
+    "hey",
+    "good morning",
+    "good afternoon",
+    "good evening",
+}
+
+
+def get_local_response(message):
+    normalized_message = re.sub(r"\s+", " ", message.strip().lower())
+    if normalized_message in GREETING_RESPONSES:
+        return "Hello. How can I help you with a medical question today?"
+    return None
 
 
 embeddings = download_hugging_face_embeddings()
@@ -36,7 +58,10 @@ docsearch = PineconeVectorStore.from_existing_index(
 
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
 
-chatModel = ChatOpenAI(model="gpt-4o")
+chatModel = ChatGoogleGenerativeAI(
+    model=os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
+    timeout=30,
+)
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
@@ -57,14 +82,26 @@ def index():
 
 @app.route("/get", methods=["GET", "POST"])
 def chat():
-    msg = request.form["msg"]
-    input = msg
-    print(input)
-    response = rag_chain.invoke({"input": msg})
-    print("Response : ", response["answer"])
-    return str(response["answer"])
+    msg = request.form.get("msg", "").strip()
+    if not msg:
+        return "Please enter a message.", 400
+
+    local_response = get_local_response(msg)
+    if local_response:
+        return local_response
+
+    print(msg)
+    try:
+        response = rag_chain.invoke({"input": msg})
+        answer = response.get("answer") or "I could not generate an answer for that message."
+        print("Response : ", answer)
+        return str(answer)
+    except Exception as exc:
+        traceback.print_exc()
+        return f"Backend error: {exc}", 500
 
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port= 8080, debug= True)
+    app.run(host="0.0.0.0", port= 8000, debug= True)
+ 

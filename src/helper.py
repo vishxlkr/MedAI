@@ -1,8 +1,17 @@
-from langchain.document_loaders import PyPDFLoader, DirectoryLoader
+try:
+    from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+except ModuleNotFoundError as exc:
+    if exc.name != "langchain_community":
+        raise
+    raise ModuleNotFoundError(
+        "Missing dependency 'langchain-community'. Activate the project virtual "
+        "environment and run: pip install -r requirements.txt"
+    ) from exc
+
+from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
 from typing import List
-from langchain.schema import Document
 
 
 #Extract Data From the PDF File
